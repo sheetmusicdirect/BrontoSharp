@@ -1,6 +1,7 @@
 ﻿using Bronto.API.BrontoService;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -40,6 +41,27 @@ namespace Bronto.API
             using (BrontoSoapPortTypeClient client = BrontoSoapClient.Create(Timeout))
             {
                 writeResult response = client.addContacts(session.SessionHeader, contacts.ToArray());
+                return BrontoResult.Create(response);
+            }
+        }
+
+
+        /// <summary>
+        /// Adds a list of contacts to a mailing list
+        /// </summary>
+        /// <param name="list">the list to add</param>
+        /// <param name="contacts">the list of contacts to add</param>
+        /// <returns>The result of the addToList operation <seealso cref="BrontoResult"/></returns>
+        public BrontoResult AddToList(mailListObject list, contactObject[] contacts)
+        {
+            using (BrontoSoapPortTypeClient client = BrontoSoapClient.Create(Timeout))
+            {
+                addToList addToList = new addToList()
+                {
+                    list = list,
+                    contacts = contacts
+                };
+                writeResult response = client.addToList(session.SessionHeader, addToList);
                 return BrontoResult.Create(response);
             }
         }
@@ -97,6 +119,58 @@ namespace Bronto.API
         /// </summary>
         /// <param name="contact">The contact to add or update</param>
         /// <returns>The result of the add or update operation <seealso cref="BrontoResult"/></returns>
+        public BrontoResult AddOrUpdateIncremental(contactObject contact)
+        {
+            return AddOrUpdateIncremental(new contactObject[] { contact });
+        }
+
+        /// <summary>
+        /// Add or updates a list of contacts in Bronto
+        /// </summary>
+        /// <param name="contact">The contacts to add or update</param>
+        /// <returns>The result of the add or update operation <seealso cref="BrontoResult"/></returns>
+        public BrontoResult AddOrUpdateIncremental(IEnumerable<contactObject> contacts)
+        {
+            using (BrontoSoapPortTypeClient client = BrontoSoapClient.Create(Timeout))
+            {
+                foreach (contactObject contact in contacts)
+                {
+
+                    var address = new stringValue { value = contact.email };
+
+                    var emailAddressArray = new[] { address };
+
+                    var filter = new contactFilter
+                    {
+                        email = emailAddressArray
+                    };
+
+                    var options = new readContacts()
+                    {
+                        includeLists = true,
+                        includeListsSpecified = true
+                    };
+                    var readResults = Read(filter, options);
+                    var existingContact = readResults.FirstOrDefault();
+
+                    if (existingContact != null)
+                    {
+                        contact.listIds = contact.listIds.Concat(existingContact.listIds).ToArray();
+                    }
+
+
+                }
+                writeResult response = client.addOrUpdateContacts(session.SessionHeader, contacts.ToArray());
+                return BrontoResult.Create(response);
+            }
+        }
+
+
+        /// <summary>
+        /// Add or updates a contact in Bronto
+        /// </summary>
+        /// <param name="contact">The contact to add or update</param>
+        /// <returns>The result of the add or update operation <seealso cref="BrontoResult"/></returns>
         public async Task<BrontoResult> AddOrUpdateAsync(contactObject contact)
         {
             return await AddOrUpdateAsync(new contactObject[] { contact });
@@ -116,6 +190,19 @@ namespace Bronto.API
             }
         }
 
+        public contactObject GetUserByEmail(string email)
+        {
+            List<contactObject> listContacts = Read(new contactFilter()
+            {
+                email = new stringValue[] { new stringValue()
+                    {
+                        value = email
+                    }
+                }
+            });
+            return listContacts.FirstOrDefault();
+        }
+
 
         /// <summary>
         /// Reads all bronto contacts with the minimal number of fields returned
@@ -133,7 +220,7 @@ namespace Bronto.API
         /// <returns>the list of contacts</returns>
         public List<contactObject> Read(readContacts options)
         {
-            return Read(new contactFilter(),options);
+            return Read(new contactFilter(), options);
         }
 
 
@@ -190,7 +277,7 @@ namespace Bronto.API
         /// <returns>the list of contacts</returns>
         public async Task<List<contactObject>> ReadAsync(readContacts options)
         {
-            return await ReadAsync(new contactFilter(),options);
+            return await ReadAsync(new contactFilter(), options);
         }
 
 
@@ -271,7 +358,7 @@ namespace Bronto.API
         {
             get
             {
-                
+
                 using (BrontoSoapPortTypeClient client = BrontoSoapClient.Create(Timeout))
                 {
                     readFields c = new readFields();
