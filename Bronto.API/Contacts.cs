@@ -1,24 +1,22 @@
 ﻿using Bronto.API.BrontoService;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Bronto.API
 {
     public class Contacts : BrontoApiClass
     {
-
         #region ctor
+
         public Contacts(LoginSession session)
             : base(session)
         {
             this.Timeout = TimeSpan.FromMinutes(15);
         }
 
-        #endregion
+        #endregion ctor
 
         #region CRUD operations
 
@@ -31,6 +29,7 @@ namespace Bronto.API
         {
             return Add(new contactObject[] { contact });
         }
+
         /// <summary>
         /// Adds a list of new contacts to Bronto
         /// </summary>
@@ -45,6 +44,29 @@ namespace Bronto.API
             }
         }
 
+        /// <summary>
+        /// Update a contact in Bronto
+        /// </summary>
+        /// <param name="contact">The contact to update</param>
+        /// <returns>The result of the add operation <seealso cref="BrontoResult"/></returns>
+        public BrontoResult Update(contactObject contact)
+        {
+            return Update(new contactObject[] { contact });
+        }
+
+        /// <summary>
+        /// Updates a list of contacts in Bronto
+        /// </summary>
+        /// <param name="contacts">the list of contacts to update</param>
+        /// <returns>The result of the add operation <seealso cref="BrontoResult"/></returns>
+        public BrontoResult Update(IEnumerable<contactObject> contacts)
+        {
+            using (BrontoSoapPortTypeClient client = BrontoSoapClient.Create(Timeout))
+            {
+                writeResult response = client.updateContacts(session.SessionHeader, contacts.ToArray());
+                return BrontoResult.Create(response);
+            }
+        }
 
         /// <summary>
         /// Adds a list of contacts to a mailing list
@@ -135,7 +157,6 @@ namespace Bronto.API
             {
                 foreach (contactObject contact in contacts)
                 {
-
                     var address = new stringValue { value = contact.email };
 
                     var emailAddressArray = new[] { address };
@@ -157,14 +178,11 @@ namespace Bronto.API
                     {
                         contact.listIds = contact.listIds.Concat(existingContact.listIds).ToArray();
                     }
-
-
                 }
                 writeResult response = client.addOrUpdateContacts(session.SessionHeader, contacts.ToArray());
                 return BrontoResult.Create(response);
             }
         }
-
 
         /// <summary>
         /// Add or updates a contact in Bronto
@@ -190,7 +208,7 @@ namespace Bronto.API
             }
         }
 
-        public contactObject GetUserByEmail(string email)
+        public contactObject GetContactByEmail(string email)
         {
             List<contactObject> listContacts = Read(new contactFilter()
             {
@@ -202,7 +220,6 @@ namespace Bronto.API
             });
             return listContacts.FirstOrDefault();
         }
-
 
         /// <summary>
         /// Reads all bronto contacts with the minimal number of fields returned
@@ -222,8 +239,6 @@ namespace Bronto.API
         {
             return Read(new contactFilter(), options);
         }
-
-
 
         /// <summary>
         /// Reads contacts from bronto using a filter and the specified return fields and information
@@ -279,7 +294,6 @@ namespace Bronto.API
         {
             return await ReadAsync(new contactFilter(), options);
         }
-
 
         /// <summary>
         /// Reads contacts from bronto using a filter and the specified return fields and information
@@ -347,7 +361,7 @@ namespace Bronto.API
             }
         }
 
-        #endregion
+        #endregion CRUD operations
 
         #region Properties
 
@@ -358,7 +372,6 @@ namespace Bronto.API
         {
             get
             {
-
                 using (BrontoSoapPortTypeClient client = BrontoSoapClient.Create(Timeout))
                 {
                     readFields c = new readFields();
@@ -384,7 +397,7 @@ namespace Bronto.API
             }
         }
 
-        #endregion
+        #endregion Properties
 
         #region static properties and methods
 
@@ -399,7 +412,6 @@ namespace Bronto.API
             }
         }
 
-        #endregion
-
+        #endregion static properties and methods
     }
 }
